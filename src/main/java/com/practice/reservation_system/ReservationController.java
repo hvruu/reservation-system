@@ -1,15 +1,19 @@
 package com.practice.reservation_system;
 
+import org.apache.coyote.Response;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.NoSuchElementException;
+
 import org.slf4j.Logger;
 
 
 @RestController
+@RequestMapping("/reservation")
 public class ReservationController {
     private final ReservationService reservationService;
 
@@ -30,7 +34,7 @@ public class ReservationController {
                 .body(reservationService.getReservationById(id));
     }
 
-    @GetMapping()
+    @GetMapping
     public ResponseEntity<List<Reservation>> getAllReservations(){
         log.info("called getAllReservations");
         return ResponseEntity.ok(reservationService.findAllReservations());
@@ -44,5 +48,38 @@ public class ReservationController {
         return ResponseEntity.status(201)
                 .body(reservationService.createReservation(reservationToCreate));
     //    return reservationService.createReservation(reservationToCreate);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Reservation> updateReservation(
+            @PathVariable("id") Long id,
+            @RequestBody Reservation reservationToUpdate
+    ){
+        log.info("called updateReservation with id={} reservation={}", id, reservationToUpdate);
+        var updated = reservationService.updateReservation(id, reservationToUpdate);
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Reservation> deleteReservation(
+            @PathVariable("id") Long id
+    ){
+        log.info("called deleteReservation with id={}", id);
+        try {
+            reservationService.deleteReservation(id);
+            return ResponseEntity.ok().build();
+        } catch (NoSuchElementException e){
+            return ResponseEntity.status(404)
+                    .build();
+        }
+    }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<Reservation> approveReservation(
+            @PathVariable("id") Long id
+    ) {
+        log.info("called approveReservation with id={}", id);
+        var reservation = reservationService.approveReservation(id);
+        return ResponseEntity.ok(reservation);
     }
 }
