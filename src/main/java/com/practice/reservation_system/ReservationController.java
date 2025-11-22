@@ -1,6 +1,6 @@
 package com.practice.reservation_system;
 
-import org.apache.coyote.Response;
+import jakarta.transaction.Transactional;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +29,7 @@ public class ReservationController {
     public ResponseEntity<Reservation> getReservationById(
             @PathVariable("id")  Long id
     ){
-        log.info("called getReservationById with id=" + id);
+        log.info("called getReservationById with id={}", id);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(reservationService.getReservationById(id));
     }
@@ -60,13 +60,13 @@ public class ReservationController {
         return ResponseEntity.ok(updated);
     }
 
-    @DeleteMapping("/{id}")
+    @Transactional
+    @DeleteMapping("/{id}/cancel")
     public ResponseEntity<Reservation> deleteReservation(
             @PathVariable("id") Long id
     ){
-        log.info("called deleteReservation with id={}", id);
         try {
-            reservationService.deleteReservation(id);
+            reservationService.cancelReservation(id);
             return ResponseEntity.ok().build();
         } catch (NoSuchElementException e){
             return ResponseEntity.status(404)
