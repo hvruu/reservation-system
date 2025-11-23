@@ -20,12 +20,14 @@ public class ReservationService {
     }
 
     public Reservation createReservation(Reservation reservationToCreate) {
-        if(reservationToCreate.id() != null){
-            throw new IllegalArgumentException("Id should be EMPTY");
-        }
         if(reservationToCreate.status() != null){
             throw new IllegalArgumentException("Status should be EMPTY");
         }
+
+        if(!reservationToCreate.endDate().isAfter(reservationToCreate.startDate())){
+            throw new IllegalArgumentException("Start date must be 1 day earlier than end date");
+        }
+
         var entityToSave = new ReservationEntity(
                 null,
                 reservationToCreate.userId(),
@@ -65,6 +67,10 @@ public class ReservationService {
             throw new IllegalStateException("Cannot modify reservation. Status = " + reservationEntity.getStatus());
         }
 
+        if(!reservationToUpdate.endDate().isAfter(reservationToUpdate.startDate())){
+            throw new IllegalArgumentException("Start date must be 1 day earlier than end date");
+        }
+
         var reservationToSave = new ReservationEntity(
                 reservationEntity.getId(),
                 reservationToUpdate.userId(),
@@ -80,9 +86,16 @@ public class ReservationService {
     }
 
     public void cancelReservation(Long id) {
-        if(!repository.existsById(id)){
-            throw new EntityNotFoundException("Not found reservation with id = " + id);
+        var reservation = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Not found reservation with id = " + id));
+
+        if(reservation.getStatus().equals(ReservationStatus.APPROVED)){
+            throw new IllegalStateException("Reservation already approved. Please contact manager");
         }
+        if(reservation.getStatus().equals(ReservationStatus.CANCELLED)){
+            throw new IllegalStateException("Cannot cancel reservation. Reservation already Cancelled");
+        }
+
         repository.setStatus(id, ReservationStatus.CANCELLED);
         log.info("Reservation (id:{}) successfully cancelled", id);
     }

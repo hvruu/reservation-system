@@ -1,6 +1,7 @@
 package com.practice.reservation_system;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +43,7 @@ public class ReservationController {
 
     @PostMapping
     public ResponseEntity<Reservation> createReservation(
-        @RequestBody Reservation reservationToCreate
+        @RequestBody @Valid Reservation reservationToCreate
     ){
         log.info("called createReservation");
         return ResponseEntity.status(201)
@@ -53,7 +54,7 @@ public class ReservationController {
     @PutMapping("/{id}")
     public ResponseEntity<Reservation> updateReservation(
             @PathVariable("id") Long id,
-            @RequestBody Reservation reservationToUpdate
+            @RequestBody @Valid Reservation reservationToUpdate
     ){
         log.info("called updateReservation with id={} reservation={}", id, reservationToUpdate);
         var updated = reservationService.updateReservation(id, reservationToUpdate);
@@ -65,13 +66,9 @@ public class ReservationController {
     public ResponseEntity<Reservation> deleteReservation(
             @PathVariable("id") Long id
     ){
-        try {
             reservationService.cancelReservation(id);
             return ResponseEntity.ok().build();
-        } catch (NoSuchElementException e){
-            return ResponseEntity.status(404)
-                    .build();
-        }
+
     }
 
     @PostMapping("/{id}/approve")
