@@ -1,4 +1,4 @@
-package com.practice.reservation_system;
+package com.practice.reservation_system.reservations;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import org.slf4j.Logger;
 
@@ -36,9 +35,15 @@ public class ReservationController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Reservation>> getAllReservations(){
+    public ResponseEntity<List<Reservation>> getAllReservations(
+            @RequestParam(name = "roomId", required = false) Long roomId,
+            @RequestParam(name = "userId", required = false) Long userId,
+            @RequestParam(name = "pageSize", required = false) Integer pageSize,
+            @RequestParam(name = "pageNum", required = false) Integer pageNum
+    ){
         log.info("called getAllReservations");
-        return ResponseEntity.ok(reservationService.findAllReservations());
+        var filter = new ReservationSearchFilter(roomId, userId, pageSize, pageNum);
+        return ResponseEntity.ok(reservationService.searchAllByFilter(filter));
     }
 
     @PostMapping
