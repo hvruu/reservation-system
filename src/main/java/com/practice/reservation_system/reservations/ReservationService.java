@@ -1,10 +1,14 @@
-package com.practice.reservation_system;
+package com.practice.reservation_system.reservations;
 
+import com.practice.reservation_system.reservations.availability.ReservationAvailabilityService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -13,10 +17,14 @@ public class ReservationService {
     private final ReservationRepository repository;
     private static final Logger log =
             LoggerFactory.getLogger(ReservationService.class);
+    private final ReservationMapper mapper;
+    private final ReservationAvailabilityService availabilityService;
 
 
-    public ReservationService(ReservationRepository repository) {
+    public ReservationService(ReservationRepository repository, ReservationMapper mapper, ReservationAvailabilityService availabilityService) {
         this.repository = repository;
+        this.mapper = mapper;
+        this.availabilityService = availabilityService;
     }
 
     public Reservation createReservation(Reservation reservationToCreate) {
@@ -28,18 +36,12 @@ public class ReservationService {
             throw new IllegalArgumentException("Start date must be 1 day earlier than end date");
         }
 
-        var entityToSave = new ReservationEntity(
-                null,
-                reservationToCreate.userId(),
-                reservationToCreate.roomId(),
-                reservationToCreate.startDate(),
-                reservationToCreate.endDate(),
-                ReservationStatus.PENDING
-        );
+        var entityToSave = mapper.toEntity(reservationToCreate);
+        entityToSave.setStatus(ReservationStatus.PENDING);
 
         var savedEntity = repository.save(entityToSave);
 
-        return toDomainReservation(savedEntity);
+        return mapper.toDomain(savedEntity);
     }
 
     public Reservation getReservationById(Long id) {
@@ -47,17 +49,27 @@ public class ReservationService {
         ReservationEntity reservationEntity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Not found reservation with id = " + id));
 
-        return toDomainReservation(reservationEntity);
+        return mapper.toDomain(reservationEntity);
     }
 
-    public List<Reservation> findAllReservations(){
-        List<ReservationEntity> allEntities = repository.findAll();
-        List<Reservation> reservationList = allEntities.stream()
-                .map(it -> toDomainReservation(it)
+    public List<Reservation> searchAllByFilter(
+            ReservationSearchFilter filter
+    ){
+        int pageSize = filter.pageSize() != null ? filter.pageSize() : 5;
+        int pageNumber = filter.pageNum() != null ? filter.pageNum() : 0;
+
+        var pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
+
+        List<ReservationEntity> allEntities = repository.findAllByFilter(
+                filter.roomId(),
+                filter.userId(),
+                pageable
+        );
+
+        return allEntities.stream()
+                .map(mapper::toDomain
                 )
                 .toList();
-
-        return reservationList;
     }
 
     public Reservation updateReservation(Long id, Reservation reservationToUpdate) {
@@ -71,20 +83,16 @@ public class ReservationService {
             throw new IllegalArgumentException("Start date must be 1 day earlier than end date");
         }
 
-        var reservationToSave = new ReservationEntity(
-                reservationEntity.getId(),
-                reservationToUpdate.userId(),
-                reservationToUpdate.roomId(),
-                reservationToUpdate.startDate(),
-                reservationToUpdate.endDate(),
-                ReservationStatus.PENDING
-        );
+        var reservationToSave = mapper.toEntity(reservationToUpdate);
+        reservationToSave.setId(reservationEntity.getId());
+        reservationToSave.setStatus(ReservationStatus.PENDING);
 
         var updatedReservation = repository.save(reservationToSave);
 
-        return toDomainReservation(updatedReservation);
+        return mapper.toDomain(updatedReservation);
     }
 
+    @Transactional
     public void cancelReservation(Long id) {
         var reservation = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Not found reservation with id = " + id));
@@ -108,8 +116,12 @@ public class ReservationService {
             throw new IllegalStateException("Status should be PENDING");
         }
 
-        var isConflict = isReservationConflict(reservationEntity);
-        if(isConflict){
+        var isAvailableToApprove = availabilityService.isReservationAvailable(
+                reservationEntity.getRoomId(),
+                reservationEntity.getStartDate(),
+                reservationEntity.getEndDate()
+        );
+        if(!isAvailableToApprove){
             throw new IllegalStateException("Cannot approve reservation because of conflict");
         }
 
@@ -117,43 +129,7 @@ public class ReservationService {
 
         repository.save(reservationEntity);
 
-        return toDomainReservation(reservationEntity);
+        return mapper.toDomain(reservationEntity);
 
-    }
-
-    private boolean isReservationConflict(
-            ReservationEntity reservation
-    ){
-        List<ReservationEntity> reservationEntityList = repository.findAll();
-
-        for( ReservationEntity existingReservation: reservationEntityList){
-            if(reservation.getId().equals(existingReservation.getId())){
-                continue;
-            }
-            if(!reservation.getRoomId().equals(existingReservation.getRoomId())){
-                continue;
-            }
-            if(!existingReservation.getStatus().equals(ReservationStatus.APPROVED)){
-                continue;
-            }
-            if(reservation.getStartDate().isBefore(existingReservation.getEndDate())
-            && existingReservation.getStartDate().isBefore(reservation.getEndDate())){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private Reservation toDomainReservation(
-            ReservationEntity reservationEntity
-    ){
-        return new Reservation(
-                reservationEntity.getId(),
-                reservationEntity.getUserId(),
-                reservationEntity.getRoomId(),
-                reservationEntity.getStartDate(),
-                reservationEntity.getEndDate(),
-                reservationEntity.getStatus()
-        );
     }
 }

@@ -1,4 +1,4 @@
-package com.practice.reservation_system;
+package com.practice.reservation_system.reservations;
 
 import jakarta.validation.constraints.*;
 

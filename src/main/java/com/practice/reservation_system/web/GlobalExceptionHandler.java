@@ -1,4 +1,4 @@
-package com.practice.reservation_system;
+package com.practice.reservation_system.web;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
