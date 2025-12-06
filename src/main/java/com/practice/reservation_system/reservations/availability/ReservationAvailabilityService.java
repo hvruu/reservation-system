@@ -2,6 +2,7 @@ package com.practice.reservation_system.reservations.availability;
 
 import com.practice.reservation_system.reservations.ReservationRepository;
 import com.practice.reservation_system.reservations.ReservationStatus;
+import com.practice.reservation_system.rooms.RoomEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,12 +22,12 @@ public class ReservationAvailabilityService {
 
 
     public boolean isReservationAvailable(
-            Long roomId,
+            RoomEntity room,
             LocalDate startDate,
             LocalDate endDate
     ){
         List<Long> conflictingIds = repository.findConflictReservationIds(
-                roomId,
+                room,
                 startDate,
                 endDate,
                 ReservationStatus.APPROVED
