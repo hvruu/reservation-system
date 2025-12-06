@@ -5,10 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.Mapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/reservation/availability")
@@ -24,11 +21,11 @@ public class ReservationAvailabilityController {
 
     @PostMapping("/check")
     public ResponseEntity<CheckAvailabilityResponse> checkAvailability(
-            @Valid CheckAvailabilityRequest request
+            @Valid @RequestBody CheckAvailabilityRequest request
     ){
         log.info("called method checkAvailability with request={}", request);
         boolean isAvailable = service.isReservationAvailable(
-                request.roomId(),
+                request.room(),
                 request.startDate(),
                 request.endDate()
         );
