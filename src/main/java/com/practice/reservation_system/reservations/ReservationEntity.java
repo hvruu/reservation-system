@@ -1,6 +1,9 @@
 package com.practice.reservation_system.reservations;
 
+import com.practice.reservation_system.rooms.RoomEntity;
+import com.practice.reservation_system.users.UserEntity;
 import jakarta.persistence.*;
+import org.hibernate.mapping.Join;
 
 import java.time.LocalDate;
 
@@ -11,10 +14,12 @@ public class ReservationEntity {
     @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "user_id")
-    private Long userId;
-    @Column(name = "room_id")
-    private Long roomId;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
+    @ManyToOne
+    @JoinColumn(name = "room_id")
+    private RoomEntity room;
     @Column(name = "start_date")
     private LocalDate startDate;
     @Column(name = "end_date")
@@ -23,16 +28,31 @@ public class ReservationEntity {
     @Column(name = "status")
     private ReservationStatus status;
 
+
     public ReservationEntity() {
     }
 
-    public ReservationEntity(Long id, Long userId, Long roomId, LocalDate startDate, LocalDate endDate, ReservationStatus status) {
+    public ReservationEntity(Long id, LocalDate startDate, LocalDate endDate, ReservationStatus status) {
         this.id = id;
-        this.userId = userId;
-        this.roomId = roomId;
         this.startDate = startDate;
         this.endDate = endDate;
         this.status = status;
+    }
+
+    public UserEntity getUser() {
+        return user;
+    }
+
+    public void setUser(UserEntity user) {
+        this.user = user;
+    }
+
+    public RoomEntity getRoom() {
+        return room;
+    }
+
+    public void setRoom(RoomEntity room) {
+        this.room = room;
     }
 
     public Long getId() {
@@ -41,22 +61,6 @@ public class ReservationEntity {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public Long getRoomId() {
-        return roomId;
-    }
-
-    public void setRoomId(Long roomId) {
-        this.roomId = roomId;
     }
 
     public LocalDate getStartDate() {
