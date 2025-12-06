@@ -1,5 +1,7 @@
 package com.practice.reservation_system.reservations;
 
+import com.practice.reservation_system.rooms.RoomEntity;
+import com.practice.reservation_system.users.UserEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -15,18 +17,18 @@ public interface ReservationRepository extends JpaRepository<ReservationEntity, 
     @Query("update ReservationEntity r set r.status = :status where r.id = :id")
     void setStatus(@Param("id") Long id, @Param("status") ReservationStatus reservationStatus);
 
-    @Query("select r.id from ReservationEntity r where r.roomId = :roomId and :startDate < endDate and startDate < :endDate and r.status = :status")
+    @Query("select r.id from ReservationEntity r where r.room = :room and :startDate < r.endDate and r.startDate < :endDate and r.status = :status")
     List<Long> findConflictReservationIds(
-            @Param("roomId") Long roomId,
+            @Param("room") RoomEntity room,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             @Param("status") ReservationStatus status
     );
 
-    @Query("select r from ReservationEntity r where (:roomId is null or r.roomId = :roomId) and (:userId is null or r.userId = :userId)")
+    @Query("select r from ReservationEntity r where (:room is null or r.room = :room) and (:user is null or r.user = :user)")
     List<ReservationEntity> findAllByFilter(
-            @Param("roomId") Long roomId,
-            @Param("userId") Long userId,
+            @Param("room") RoomEntity room,
+            @Param("user") UserEntity user,
             Pageable pageable
     );
 }
