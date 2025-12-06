@@ -1,5 +1,8 @@
 package com.practice.reservation_system.rooms;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class RoomMapper {
 
     public Room toDomain(RoomEntity entity){
