@@ -1,6 +1,10 @@
 package com.practice.reservation_system.reservations;
 
 import com.practice.reservation_system.reservations.availability.ReservationAvailabilityService;
+import com.practice.reservation_system.rooms.RoomEntity;
+import com.practice.reservation_system.rooms.RoomRepository;
+import com.practice.reservation_system.users.UserEntity;
+import com.practice.reservation_system.users.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -10,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class ReservationService {
@@ -19,21 +24,32 @@ public class ReservationService {
             LoggerFactory.getLogger(ReservationService.class);
     private final ReservationMapper mapper;
     private final ReservationAvailabilityService availabilityService;
+    private final RoomRepository roomRepository;
+    private final UserRepository userRepository;
 
 
-    public ReservationService(ReservationRepository repository, ReservationMapper mapper, ReservationAvailabilityService availabilityService) {
+    public ReservationService(ReservationRepository repository, ReservationMapper mapper, ReservationAvailabilityService availabilityService, RoomRepository roomRepository, UserRepository userRepository) {
         this.repository = repository;
         this.mapper = mapper;
         this.availabilityService = availabilityService;
+        this.roomRepository = roomRepository;
+        this.userRepository = userRepository;
     }
 
-    public Reservation createReservation(Reservation reservationToCreate) {
+    public Reservation createReservation(ReservationSave reservationToCreate) {
         if(reservationToCreate.status() != null){
             throw new IllegalArgumentException("Status should be EMPTY");
         }
 
         if(!reservationToCreate.endDate().isAfter(reservationToCreate.startDate())){
             throw new IllegalArgumentException("Start date must be 1 day earlier than end date");
+        }
+
+        var roomToReserve = roomRepository.findById(reservationToCreate.roomId())
+                .orElseThrow(() -> new NoSuchElementException("Not found room with id=" + reservationToCreate.id()));
+
+        if(!availabilityService.isReservationAvailable(roomToReserve, reservationToCreate.startDate(), reservationToCreate.endDate())){
+            throw new IllegalStateException("Room is not available for the selected dates");
         }
 
         var entityToSave = mapper.toEntity(reservationToCreate);
@@ -60,19 +76,26 @@ public class ReservationService {
 
         var pageable = Pageable.ofSize(pageSize).withPage(pageNumber);
 
-        List<ReservationEntity> allEntities = repository.findAllByFilter(
-                filter.roomId(),
-                filter.userId(),
-                pageable
-        );
+        RoomEntity room = null;
+        UserEntity user = null;
+        if(filter.roomId() != null){
+            room = roomRepository.findById(filter.roomId())
+                    .orElseThrow(() -> new EntityNotFoundException("Room not found"));
+        }
+        if(filter.userId() != null){
+            user = userRepository.findById(filter.userId())
+                    .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        }
+
+        List<ReservationEntity> allEntities = repository.findAllByFilter(room, user, pageable);
+
 
         return allEntities.stream()
-                .map(mapper::toDomain
-                )
+                .map(mapper::toDomain)
                 .toList();
     }
 
-    public Reservation updateReservation(Long id, Reservation reservationToUpdate) {
+    public Reservation updateReservation(Long id, ReservationSave reservationToUpdate) {
         ReservationEntity reservationEntity = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Not found reservation with id = " + id));
 
         if(reservationEntity.getStatus() != ReservationStatus.PENDING){
@@ -117,7 +140,7 @@ public class ReservationService {
         }
 
         var isAvailableToApprove = availabilityService.isReservationAvailable(
-                reservationEntity.getRoomId(),
+                reservationEntity.getRoom(),
                 reservationEntity.getStartDate(),
                 reservationEntity.getEndDate()
         );
