@@ -48,7 +48,7 @@ public class ReservationController {
 
     @PostMapping
     public ResponseEntity<Reservation> createReservation(
-        @RequestBody @Valid Reservation reservationToCreate
+        @RequestBody @Valid ReservationSave reservationToCreate
     ){
         log.info("called createReservation");
         return ResponseEntity.status(201)
@@ -59,7 +59,7 @@ public class ReservationController {
     @PutMapping("/{id}")
     public ResponseEntity<Reservation> updateReservation(
             @PathVariable("id") Long id,
-            @RequestBody @Valid Reservation reservationToUpdate
+            @RequestBody @Valid ReservationSave reservationToUpdate
     ){
         log.info("called updateReservation with id={} reservation={}", id, reservationToUpdate);
         var updated = reservationService.updateReservation(id, reservationToUpdate);
