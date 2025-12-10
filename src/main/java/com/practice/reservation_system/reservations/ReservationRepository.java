@@ -3,6 +3,7 @@ package com.practice.reservation_system.reservations;
 import com.practice.reservation_system.rooms.RoomEntity;
 import com.practice.reservation_system.users.UserEntity;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -25,6 +26,7 @@ public interface ReservationRepository extends JpaRepository<ReservationEntity, 
             @Param("status") ReservationStatus status
     );
 
+    @EntityGraph(value = "ReservationWithRelations")
     @Query("select r from ReservationEntity r where (:room is null or r.room = :room) and (:user is null or r.user = :user)")
     List<ReservationEntity> findAllByFilter(
             @Param("room") RoomEntity room,

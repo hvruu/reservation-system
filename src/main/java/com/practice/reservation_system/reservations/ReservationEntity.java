@@ -8,6 +8,13 @@ import org.hibernate.mapping.Join;
 import java.time.LocalDate;
 
 @Table(name = "reservations")
+@NamedEntityGraph(
+        name = "ReservationWithRelations",
+        attributeNodes = {
+                @NamedAttributeNode("room"),
+                @NamedAttributeNode("user")
+        }
+)
 @Entity
 public class ReservationEntity {
     @Id
